@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:batch="http://www.mulesoft.org/schema/mule/batch"
+	xmlns:ftp="http://www.mulesoft.org/schema/mule/ftp"
+	xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/ftp http://www.mulesoft.org/schema/mule/ftp/current/mule-ftp.xsd
+http://www.mulesoft.org/schema/mule/batch http://www.mulesoft.org/schema/mule/batch/current/mule-batch.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+	<salesforce:sfdc-config name="Salesforce_Config" doc:name="Salesforce Config" doc:id="e3f279f1-bc3d-4d4f-9cbb-6fd9789aa5c3" >
+		<salesforce:cached-basic-connection username="${sfdc.username}" password="${sfdc.password}" securityToken="${sfdc.token}" />
+	</salesforce:sfdc-config>
+	<flow name="FetchTheRecords" doc:id="d9684e11-c31a-422c-872b-80531492bbef" >
+		<http:listener doc:name="Listener" doc:id="e3df4796-8409-4a83-8491-86f01785af78" config-ref="HTTP_Listener_config" path="/sfdc1"/>
+		<salesforce:query doc:name="Fetching records" doc:id="f35a97fb-2698-48f0-a009-b06ccca224ea" config-ref="Salesforce_Config1">
+			<salesforce:salesforce-query >SELECT Name, LastModifiedDate, BillingPostalCode
+FROM Account where name='hima'</salesforce:salesforce-query>
+		</salesforce:query>
+		<ee:transform doc:name="Transform Message" doc:id="1383071f-9873-437e-b403-d5fde4235e1a" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="CreateRecords" doc:id="a337c590-1d63-4ce8-b221-3374814a7d27" >
+		<http:listener doc:name="Listener" doc:id="c79e1a59-edeb-406a-ad8f-118a5d3ea716" config-ref="HTTP_Listener_config" path="/sfdc11" allowedMethods="POST"/>
+		<ee:transform doc:name="Transform Message" doc:id="221f5c74-e401-4f38-9232-4817f201a9d1" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+[
+   
+   "country": "India",
+   "street": "Nandini LAYOUT",
+   "state": "karnataka",
+   "name": "rahul",
+   "city": "Bangalore",
+   "postal": "560096"
+  ]]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<salesforce:create doc:name="Create" doc:id="5c7d553d-88ef-4e53-9713-c7eee1cc2872" config-ref="Salesforce_Config1" type="Account"/>
+	</flow>
+	<flow name="update" doc:id="db0146a8-a89b-4eab-b423-aaf6ac839d47" >
+		<http:listener doc:name="Listener" doc:id="7908ce00-6f98-42c0-88f5-d29e33a67e6d" config-ref="HTTP_Listener_config" path="/sfdc12"/>
+		<ee:transform doc:name="Transform Message" doc:id="fba0f73f-5dfd-49cd-ab5c-8aa3d8506ce8" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+[
+	{
+          "name":"RamaRao"
+    }
+]]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<salesforce:update type="Account" doc:name="Update" doc:id="3a976b1b-2f88-4e88-b268-d6e2c15651aa" config-ref="Salesforce_Config1"/>
+	</flow>
+	<flow name="validation" doc:id="bffbe2c4-301a-4867-b310-d6eb83faaac3" >
+		<http:listener doc:name="Listener" doc:id="da4cf2fa-1f85-4d37-b674-44cb2086ae45" config-ref="HTTP_Listener_config" path="/sfdc14"/>
+		<http:request method="GET" doc:name="Request" doc:id="395777fb-71a8-4b99-a420-0125e2559ff6" config-ref="HTTP_Request_configuration" url="https://api.ipfind.com">
+			<http:query-params ><![CDATA[#[output application/java
+---
+{
+	"ip" : "114.143.158.78",
+	"auth" : "887ce637-3c26-4666-9639-a91e5d95b400"
+}]]]></http:query-params>
+		</http:request>
+		<ee:transform doc:name="Transform Message" doc:id="0c89f8a5-934e-4268-ae98-81e22cd26e18" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="4875fab5-30b3-449d-8204-013eeef299d2" message="#[payload]"/>
+	</flow>
+</mule>
